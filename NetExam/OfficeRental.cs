@@ -9,23 +9,39 @@
 
     public class OfficeRental : IOfficeRental
     {
-        public IList<ILocation> Locations { get; set; } = new List<ILocation>();
-        public IList<IOffice> Offices { get; set; } = new List<IOffice>();
+        public IList<Location> Locations { get; set; } = new List<Location>();
+        public IList<Office> Offices { get; set; } = new List<Office>();
         public IList<Booking> Bookings { get; set; } = new List<Booking>();
 
         public void AddLocation(LocationSpecs locationSpecs)
         {
-            ILocation location = new Location { Name = locationSpecs.Name };
+            Location location = new Location { Name = locationSpecs.Name, Neighborhood = locationSpecs.Neighborhood };
 
+            var locationExist = SearchLocation(location);
+
+            if (locationExist)
+            {
+                throw new ArgumentException($"The location {locationSpecs.Name} already exists.");
+            } 
+            
             Locations.Add(location);
         }
 
         public void AddOffice(OfficeSpecs officeSpecs)
         {
-            IOffice office = new Office
+            var locationExist = SearchLocation(new Location { Name = officeSpecs.LocationName });
+
+            if (!locationExist)
+            {
+                throw new ArgumentException($"The Location '{officeSpecs.LocationName}' does not exist.");
+            }
+
+            Office office = new Office
             {
                 LocationName = officeSpecs.LocationName,
-                Name = officeSpecs.Name
+                Name = officeSpecs.Name,
+                Capacity = officeSpecs.MaxCapacity,
+                Resourses = officeSpecs.AvailableResources
             };
 
             Offices.Add(office);
@@ -33,16 +49,26 @@
 
         public void BookOffice(BookingRequest bookingRequest)
         {
-            IOffice office = new Office
+            IOffice office = Offices.Where( o => o.LocationName == bookingRequest.LocationName &&
+                                                 o.Name == bookingRequest.OfficeName
+                                          ).SingleOrDefault();
+            if (office == null)
             {
-                LocationName = bookingRequest.LocationName,
-                Name = bookingRequest.OfficeName
-            };
+                throw new Exception($"The office {bookingRequest.OfficeName} in the location {bookingRequest.LocationName} does not exist.");
+            }
+
             Booking booking = new Booking
             {
                 DateTime = bookingRequest.DateTime,
                 Office = office
             };
+
+            var officeTaken = OfficeIsTaken(office);
+
+            if(officeTaken)
+            {
+                throw new ArgumentException($"The office {office.Name} is already taken.");
+            }
 
             Bookings.Add(booking);
         }
@@ -63,14 +89,43 @@
 
         public IEnumerable<IOffice> GetOffices(string locationName)
         {
-            IList<IOffice> offices = Offices.Where(o => o.LocationName == locationName)
-                                .ToList();
+            IList<Office> offices = Offices.Where(o => o.LocationName == locationName)
+                                            .ToList();
             return offices;
         }
 
         public IEnumerable<IOffice> GetOfficeSuggestion(SuggestionRequest suggestionRequest)
         {
-            throw new NotImplementedException();
+            var (capacityNeeded, preferedNeigborHood, resourcesNeeded) = suggestionRequest;
+
+            var idealOffices = Offices.Where(o => o.Capacity >= capacityNeeded &&
+                                                  o.Resourses.Intersect(resourcesNeeded).Count() == resourcesNeeded.Count() &&
+                                                  preferedNeigborHood == Locations.SingleOrDefault(l => l.Name == o.LocationName)
+                                                                                  .Neighborhood      
+                                            )
+                                       .OrderBy(o => o.Capacity)
+                                       .ThenBy(o => o.Resourses.Count());
+
+            var suggestedOffices = Offices.Where(o => o.Capacity >= capacityNeeded &&
+                                                       o.Resourses.Intersect(resourcesNeeded).Count() >= resourcesNeeded.Count() &&
+                                                       preferedNeigborHood != Locations.SingleOrDefault(l => l.Name == o.LocationName)
+                                                                                  .Neighborhood
+                                                  )
+                                        .OrderBy(o => o.Capacity)
+                                        .ThenBy(o => o.Resourses.Count());
+            var result = idealOffices.Union(suggestedOffices);
+
+            return result;
+        }
+
+        private bool SearchLocation(ILocation location)
+        {
+            return Locations.Any(l => l.Name.ToLowerInvariant() == location.Name.ToLowerInvariant());
+        }
+
+        private bool OfficeIsTaken(IOffice office)
+        {
+            return Bookings.Any(b => b.Office.Name == office.Name);
         }
     }
 }

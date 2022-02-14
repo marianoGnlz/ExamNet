@@ -22,5 +22,13 @@
             PreferedNeigborHood = preferedNeigborHood;
             ResourcesNeeded = resourcesNeeded ?? new List<string>();
         }
+
+        public void Deconstruct(out int capacityNeeded, out string preferedNeigborHood, out IEnumerable<string> resourcesNeeded)
+        {
+            capacityNeeded = CapacityNeeded;
+            preferedNeigborHood = PreferedNeigborHood;
+            resourcesNeeded = ResourcesNeeded;
+
+        }
     }
 }

@@ -31,7 +31,8 @@ Obtener un listado de reservas de una oficina.
 **GetOfficeSuggestion**<br/> 
 Obtener un listado de oficinas que coincidan con las especificaciones, ordenados por conveniencia.
 Las sugerencias tiene que permitir la capacidad necesaria y tener todos los recursos solicitados.
-Siempre es conveniente reservar una oficina en el barrio solicitado pero si no hay ninguna se pueden sugerir otros locales.
+Siempre es conveniente reservar una oficina en el barrio solicitado pero si no hay ninguna se pueden sugerir
+otros locales.
 Tambi?n es prioridad mantener libres las oficinas mas grandes y con mas recursos de los que se requieren.
 
 
